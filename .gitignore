@@ -1,0 +1,21 @@
+# Archivos compilados de MetaTrader
+*.ex5
+
+# Logs
+*.log
+
+# Temporales
+*.tmp
+*.bak
+
+# Archivos comprimidos
+*.zip
+
+# Carpeta del tester de MT5
+Tester/
+
+# Reportes
+Reports/
+
+# Configuración local de VS Code
+.vscode/
