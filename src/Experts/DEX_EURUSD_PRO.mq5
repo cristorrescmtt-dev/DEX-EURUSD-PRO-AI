@@ -157,6 +157,7 @@ State.pullbackSell = Pullback.SellSignal(
 );
 
 ENUM_ENTRY_SIGNAL entrySignal = EntryEngine.Evaluate(State);
+bool hasPosition = OrderManager.HasOpenPosition();
 
 double stopLoss = 0.0;
 

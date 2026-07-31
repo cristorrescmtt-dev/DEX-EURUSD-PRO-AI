@@ -10,8 +10,15 @@ class COrderManager
 {
 private:
    CTrade m_trade;
+   ulong m_magic;
 
 public:
+
+   COrderManager()
+   {
+      m_magic = 20260001;
+      m_trade.SetExpertMagicNumber(m_magic);
+   }
 
    bool Buy(double lots,double sl,double tp,string comment="DEX")
    {
@@ -35,6 +42,30 @@ public:
          tp,
          comment
       );
+   }
+
+   bool HasOpenPosition()
+   {
+      for(int i = PositionsTotal() - 1; i >= 0; i--)
+      {
+         ulong ticket = PositionGetTicket(i);
+
+         if(ticket == 0)
+            continue;
+
+         if(!PositionSelectByTicket(ticket))
+            continue;
+
+         if(PositionGetString(POSITION_SYMBOL) != _Symbol)
+            continue;
+
+         if((ulong)PositionGetInteger(POSITION_MAGIC) != m_magic)
+            continue;
+
+         return true;
+      }
+
+      return false;
    }
 };
 
