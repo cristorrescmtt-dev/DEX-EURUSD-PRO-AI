@@ -11,6 +11,7 @@
 #include "../Include/Core/Logger.mqh"
 #include "../Include/Core/Kernel.mqh"
 #include "../Include/Market/MarketContext.mqh"
+#include "../Include/Market/MarketState.mqh"
 #include "../Include/Indicators/EMA.mqh"
 #include "../Include/Indicators/ATR.mqh"
 #include "../Include/Indicators/ADX.mqh"
@@ -19,6 +20,9 @@
 #include "../Include/Risk/RiskManager.mqh"
 #include "../Include/Market/SessionManager.mqh"
 #include "../Include/Trading/TradeSetupEngine.mqh"
+#include "../Include/UI/Dashboard.mqh"
+#include "../Include/Trading/PullbackEngine.mqh"
+#include "../Include/Trading/EntryEngine.mqh"
 
 //------------------------------------------------------------
 // Objetos globales
@@ -28,15 +32,22 @@ CConfig Config;
 CLogger Logger;
 CKernel Kernel;
 CMarketContext Market;
+MarketState State;
+
 CEMA EMA50;
 CEMA EMA200;
 CATR ATR;
 CADX ADX;
+
 CTrendEngine TrendEngine;
 CScoreEngine ScoreEngine;
 CRiskManager Risk;
 CSessionManager Session;
+
 CTradeSetupEngine TradeSetup;
+CDashboard Dashboard;
+CPullbackEngine Pullback;
+CEntryEngine EntryEngine;
 
 
 //------------------------------------------------------------
@@ -91,13 +102,28 @@ void OnTick()
    double ema200 = EMA200.Value();
    double atr = ATR.Value();
    double adx = ADX.Value();
+   //==================================================
+   // Construir MarketState
+   //==================================================
+
+   State.bid    = SymbolInfoDouble(_Symbol, SYMBOL_BID);
+   State.ask    = SymbolInfoDouble(_Symbol, SYMBOL_ASK);
+   State.spread = Market.Spread();
+
+   State.ema50  = ema50;
+   State.ema200 = ema200;
+
+   State.atr    = atr;
+   State.adx    = adx;
    ENUM_TREND trend =
    TrendEngine.Evaluate(
       ema50,
       ema200,
       adx
    );
-   ScoreResult score =
+   State.trend = trend;
+
+ScoreResult score =
    ScoreEngine.Evaluate(
       trend == TREND_BULLISH,
       trend == TREND_BEARISH,
@@ -105,40 +131,48 @@ void OnTick()
       atr,
       Market.Spread()
    );
-   ENUM_SETUP setup =
+
+State.tradingAllowed = Session.TradingAllowed();
+State.sessionName    = Session.Name();
+State.score          = score;
+
+State.pullbackBuy = Pullback.BuySignal(
+   State.bid,
+   State.ema50,
+   State.trend,
+   State.atr
+);
+
+State.pullbackSell = Pullback.SellSignal(
+   State.bid,
+   State.ema50,
+   State.trend,
+   State.atr
+);
+
+ENUM_ENTRY_SIGNAL entrySignal = EntryEngine.Evaluate(State);
+
+ENUM_SETUP setup =
    TradeSetup.Evaluate(
       trend,
       score,
-      Session.TradingAllowed()
+      State.tradingAllowed
    );
 
-   Comment(
-
-   "DEX ENGINE\n",
-   "========================\n\n",
-
-   "Trend      : ", TrendEngine.ToString(trend), "\n",
-
-   "EMA Score  : ", score.trend, "\n",
-
-   "ADX Score  : ", score.adx, "\n",
-
-   "ATR Score  : ", score.atr, "\n",
-
-   "Spread     : ", score.spread, "\n\n",
-
-   "TOTAL      : ", score.total, "\n\n",
-
-   (score.valid ? "READY" : "WAIT"), "\n",
-
-   "Risk      : ", DoubleToString(Risk.Risk(),2), " %", "\n",
-
-    "Session   : ", Session.Name(), "\n",
-
-    "Trading   : ", (Session.TradingAllowed() ? "YES" : "NO"), "\n",
-
-    "Setup     : ", TradeSetup.ToString(setup), "\n"
-
+Dashboard.Show(
+   TrendEngine.ToString(trend),
+   score.trend,
+   score.adx,
+   score.atr,
+   score.spread,
+   score.total,
+   score.valid,
+   Risk.Risk(),
+   State.sessionName,
+   State.tradingAllowed,
+   TradeSetup.ToString(setup),
+   State.pullbackBuy ? "BUY" : (State.pullbackSell ? "SELL" : "NO"),
+   EntryEngine.ToString(entrySignal)
 );
-
+   
 }
