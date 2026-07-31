@@ -18,6 +18,7 @@
 #include "../Include/Trading/ScoreEngine.mqh"
 #include "../Include/Risk/RiskManager.mqh"
 #include "../Include/Market/SessionManager.mqh"
+#include "../Include/Trading/TradeSetupEngine.mqh"
 
 //------------------------------------------------------------
 // Objetos globales
@@ -35,6 +36,7 @@ CTrendEngine TrendEngine;
 CScoreEngine ScoreEngine;
 CRiskManager Risk;
 CSessionManager Session;
+CTradeSetupEngine TradeSetup;
 
 
 //------------------------------------------------------------
@@ -103,6 +105,12 @@ void OnTick()
       atr,
       Market.Spread()
    );
+   ENUM_SETUP setup =
+   TradeSetup.Evaluate(
+      trend,
+      score,
+      Session.TradingAllowed()
+   );
 
    Comment(
 
@@ -123,11 +131,13 @@ void OnTick()
 
    (score.valid ? "READY" : "WAIT"), "\n",
 
-   "Risk       : ", DoubleToString(Risk.Risk(),2), " %\n",
+   "Risk      : ", DoubleToString(Risk.Risk(),2), " %", "\n",
 
-   "Session    : ", Session.Name(), "\n",
+    "Session   : ", Session.Name(), "\n",
 
-   "Trading    : ", (Session.TradingAllowed() ? "YES" : "NO"), "\n"
+    "Trading   : ", (Session.TradingAllowed() ? "YES" : "NO"), "\n",
+
+    "Setup     : ", TradeSetup.ToString(setup), "\n"
 
 );
 
