@@ -26,6 +26,7 @@
 #include "../Include/Trading/OrderManager.mqh"
 #include "../Include/Trading/StopLossEngine.mqh"
 #include "../Include/Trading/TakeProfitEngine.mqh"
+#include "../Include/Trading/ExecutionEngine.mqh"
 
 //------------------------------------------------------------
 // Objetos globales
@@ -53,6 +54,7 @@ CEntryEngine EntryEngine;
 COrderManager OrderManager;
 CStopLossEngine StopLoss;
 CTakeProfitEngine TakeProfit;
+CExecutionEngine Execution;
 
 CDashboard Dashboard;
 
@@ -180,6 +182,35 @@ if(entrySignal == ENTRY_SELL)
       State.bid,
       stopLoss
    );
+
+bool canExecute =
+   Execution.CanExecute(
+      entrySignal,
+      hasPosition,
+      State.tradingAllowed,
+      State.score.valid
+   );
+
+   if(canExecute)
+{
+   double lots = 0.01;   // Temporal
+
+   bool executed =
+      Execution.Execute(
+         OrderManager,
+         entrySignal,
+         lots,
+         stopLoss,
+         takeProfit
+      );
+
+   if(executed)
+      Logger.Info("Trade ejecutado correctamente.");
+   else
+      Logger.Info("No fue posible ejecutar la orden.");
+}
+
+
 
 ENUM_SETUP setup =
    TradeSetup.Evaluate(
