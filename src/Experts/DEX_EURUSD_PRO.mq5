@@ -23,6 +23,9 @@
 #include "../Include/UI/Dashboard.mqh"
 #include "../Include/Trading/PullbackEngine.mqh"
 #include "../Include/Trading/EntryEngine.mqh"
+#include "../Include/Trading/OrderManager.mqh"
+#include "../Include/Trading/StopLossEngine.mqh"
+#include "../Include/Trading/TakeProfitEngine.mqh"
 
 //------------------------------------------------------------
 // Objetos globales
@@ -45,10 +48,13 @@ CRiskManager Risk;
 CSessionManager Session;
 
 CTradeSetupEngine TradeSetup;
-CDashboard Dashboard;
 CPullbackEngine Pullback;
 CEntryEngine EntryEngine;
+COrderManager OrderManager;
+CStopLossEngine StopLoss;
+CTakeProfitEngine TakeProfit;
 
+CDashboard Dashboard;
 
 //------------------------------------------------------------
 // Inicialización
@@ -151,6 +157,28 @@ State.pullbackSell = Pullback.SellSignal(
 );
 
 ENUM_ENTRY_SIGNAL entrySignal = EntryEngine.Evaluate(State);
+
+double stopLoss = 0.0;
+
+if(entrySignal == ENTRY_BUY)
+   stopLoss = StopLoss.BuySL(State.bid, State.atr);
+
+if(entrySignal == ENTRY_SELL)
+   stopLoss = StopLoss.SellSL(State.bid, State.atr);
+
+double takeProfit = 0.0;
+
+if(entrySignal == ENTRY_BUY)
+   takeProfit = TakeProfit.BuyTP(
+      State.bid,
+      stopLoss
+   );
+
+if(entrySignal == ENTRY_SELL)
+   takeProfit = TakeProfit.SellTP(
+      State.bid,
+      stopLoss
+   );
 
 ENUM_SETUP setup =
    TradeSetup.Evaluate(
